@@ -12,6 +12,7 @@ class RobertaClassificationHead(nn.Module):
 
     def __init__(self, config):
         super().__init__()
+        # 这是全连接层Linear（输入维度，输出维度）
         self.manual_dense = nn.Linear(config.feature_size, config.hidden_size)
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
         self.out_proj_new = nn.Linear(config.hidden_size + config.hidden_size, 1)
@@ -21,13 +22,11 @@ class RobertaClassificationHead(nn.Module):
         y = manual_features.float()  # [bs, feature_size]
         y = self.manual_dense(y)
         y = torch.tanh(y)
-
+        # 这里就是将两种特征进行了拼接
         x = torch.cat((x, y), dim=-1)
         x = self.dropout(x)
         x = self.out_proj_new(x)
         return x
-
-
 class Model(nn.Module):
     def __init__(self, encoder, config, tokenizer, args):
         super(Model, self).__init__()
