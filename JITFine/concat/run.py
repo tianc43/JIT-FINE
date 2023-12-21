@@ -17,8 +17,13 @@ from torch.utils.data.distributed import DistributedSampler
 from transformers import (WEIGHTS_NAME, AdamW, get_linear_schedule_with_warmup,
                           RobertaConfig, RobertaForSequenceClassification, RobertaTokenizer, RobertaModel)
 from tqdm import tqdm, trange
-import multiprocessing
-from JITFine.concat.model import Model
+import multiprocessing,sys
+# 获取当前文件所在目录的父目录，并将其添加到sys.path中
+current_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.dirname(current_dir)
+sys.path.append(project_root)
+sys.path.append(os.path.dirname(project_root))
+from model import Model
 from JITFine.my_util import convert_examples_to_features, TextDataset, eval_result, preprocess_code_line, \
     get_line_level_metrics, create_path_if_not_exist
 
@@ -379,67 +384,92 @@ def deal_with_attns(item, attns, pred, commit2codes, idx2label, only_adds=False)
         result_df['score'].tolist(), result_df['label'].tolist())
     return IFA, top_20_percent_LOC_recall, effort_at_20_percent_LOC_recall, top_10_acc, top_5_acc
 
+import sys
+from configparser import ConfigParser
+tcpath = "/home/debian/JIT-Fine/JITFine/concat/"
+
+def get_config_file_name():
+    """ get the configuration file name according to the command line parameters
+    """
+    argv = sys.argv
+    config_type = "dev"  # default configuration type
+    if None != argv and len(argv) > 1:
+        config_type = argv[1]
+    config_file = tcpath + config_type + ".cfg"
+    logger.info("get_config_file_name() return : " + config_file)
+    return config_file
+def get_default(config_parser, section, name):
+    return config_parser.get(section, str(name)).split(',')
+
 
 def parse_args():
-    parser = argparse.ArgumentParser()
+    config_parser = ConfigParser()
+    config_file = get_config_file_name()
+    config_parser.read(config_file, encoding="UTF-8")
+    sections = config_parser.sections()
+    file_section = sections[0]
+    base_section = sections[1]
+    parameters_section = sections[2]
+    flags_section = sections[3]
 
+    parser = argparse.ArgumentParser()
     ## Required parameters
-    parser.add_argument("--train_data_file", nargs=2, type=str, required=True,
+    parser.add_argument("--train_data_file", default=get_default(config_parser, file_section, "train_data_file"), nargs=2, type=str, required=False,
                         help="The input training data file (a text file).")
-    parser.add_argument("--output_dir", default=None, type=str, required=True,
+    parser.add_argument("--output_dir", default=config_parser.get(file_section, "output_dir"), type=str, required=False,
                         help="The output directory where the model predictions and checkpoints will be written.")
 
     ## Other parameters
-    parser.add_argument("--eval_data_file", nargs=2, type=str,
+    parser.add_argument("--eval_data_file", default=get_default(config_parser, file_section, "eval_data_file"), nargs=2, type=str,
                         help="An optional input evaluation data file to evaluate the perplexity on (a text file).")
-    parser.add_argument("--test_data_file", nargs=2, type=str,
+    parser.add_argument("--test_data_file", default=get_default(config_parser, file_section, "test_data_file"), nargs=2, type=str,
                         help="An optional input evaluation data file to evaluate the perplexity on (a text file).")
 
-    parser.add_argument("--model_name_or_path", default=None, type=str,
+    parser.add_argument("--model_name_or_path", default=config_parser.get(base_section, "model_name_or_path"), type=str,
                         help="The model checkpoint for weights initialization.")
 
-    parser.add_argument("--config_name", default="", type=str,
+    parser.add_argument("--config_name", default=config_parser.get(base_section, "config_name"), type=str,
                         help="Pretrained config name or path if not the same as model_name")
-    parser.add_argument("--tokenizer_name", default="", type=str,
+    parser.add_argument("--tokenizer_name", default=config_parser.get(base_section, "tokenizer_name"), type=str,
                         help="Pretrained tokenizer name or path if not the same as model_name")
-    parser.add_argument("--cache_dir", default="", type=str,
+    parser.add_argument("--cache_dir", default=config_parser.get(base_section, "cache_dir"), type=str,
                         help="Where do you want to store the pre-trained models downloaded from s3")
-    parser.add_argument("--max_seq_length", default=128, type=int,
+    parser.add_argument("--max_seq_length", default=int(config_parser.get(parameters_section, "max_seq_length")), type=int,
                         help="The maximum total input sequence length after tokenization. Sequences longer "
                              "than this will be truncated, sequences shorter will be padded.")
-    parser.add_argument("--do_train", action='store_true',
+    parser.add_argument("--do_train", action='store_true', default=config_parser.get(flags_section, "do_train"),
                         help="Whether to run training.")
-    parser.add_argument("--do_eval", action='store_true',
+    parser.add_argument("--do_eval", action='store_true', default=config_parser.get(flags_section, "do_eval"),
                         help="Whether to run eval on the dev set.")
-    parser.add_argument("--do_test", action='store_true',
+    parser.add_argument("--do_test", action='store_true', default=config_parser.get(flags_section, "do_test"),
                         help="Whether to run eval on the dev set.")
-    parser.add_argument("--evaluate_during_training", action='store_true',
+    parser.add_argument("--evaluate_during_training", action='store_true', default=config_parser.get(flags_section, "evaluate_during_training"),
                         help="Run evaluation during training at each logging step.")
 
-    parser.add_argument("--train_batch_size", default=4, type=int,
+    parser.add_argument("--train_batch_size", default=int(config_parser.get(parameters_section, "train_batch_size")), type=int,
                         help="Batch size per GPU/CPU for training.")
-    parser.add_argument("--eval_batch_size", default=4, type=int,
+    parser.add_argument("--eval_batch_size", default=int(config_parser.get(parameters_section, "eval_batch_size")), type=int,
                         help="Batch size per GPU/CPU for evaluation.")
-    parser.add_argument('--gradient_accumulation_steps', type=int, default=1,
+    parser.add_argument('--gradient_accumulation_steps', type=int, default=int(config_parser.get(parameters_section, "gradient_accumulation_steps")),
                         help="Number of updates steps to accumulate before performing a backward/update pass.")
-    parser.add_argument("--learning_rate", default=5e-5, type=float,
+    parser.add_argument("--learning_rate", default=float(config_parser.get(parameters_section, "learning_rate")), type=float,
                         help="The initial learning rate for Adam.")
     parser.add_argument("--weight_decay", default=0.0, type=float,
                         help="Weight deay if we apply some.")
     parser.add_argument("--adam_epsilon", default=1e-8, type=float,
                         help="Epsilon for Adam optimizer.")
-    parser.add_argument("--max_grad_norm", default=1.0, type=float,
+    parser.add_argument("--max_grad_norm", default=float(config_parser.get(parameters_section, "max_grad_norm")), type=float,
                         help="Max gradient norm.")
     parser.add_argument("--max_steps", default=-1, type=int,
                         help="If > 0: set total number of training steps to perform. Override num_train_epochs.")
     parser.add_argument("--warmup_steps", default=0, type=int,
                         help="Linear warmup over warmup_steps.")
 
-    parser.add_argument('--seed', type=int, default=42,
+    parser.add_argument('--seed', type=int, default=int(config_parser.get(parameters_section, "seed")),
                         help="random seed for initialization")
     parser.add_argument('--do_seed', type=int, default=123456,
                         help="random seed for data order initialization")
-    parser.add_argument('--epochs', type=int, default=1,
+    parser.add_argument('--epochs', type=int, default=int(config_parser.get(parameters_section, "epochs")),
                         help="training epochs")
 
     parser.add_argument('--feature_size', type=int, default=14,
@@ -450,9 +480,9 @@ def parse_args():
                         help="Best checkpoint for semantic feature")
     parser.add_argument('--manual_checkpoint', type=str, default=None,
                         help="Best checkpoint for manual feature")
-    parser.add_argument('--max_msg_length', type=int, default=64,
+    parser.add_argument('--max_msg_length', type=int, default=int(config_parser.get(parameters_section, "max_msg_length")),
                         help="Number of labels")
-    parser.add_argument('--patience', type=int, default=5,
+    parser.add_argument('--patience', type=int, default=int(config_parser.get(parameters_section, "patience")),
                         help='patience for early stop')
     parser.add_argument("--only_adds", action='store_true',
                         help="Whether to run eval on the only added lines.")
@@ -461,7 +491,6 @@ def parse_args():
 
     args = parser.parse_args()
     return args
-
 
 def main(args):
     # Setup CUDA, GPU
@@ -541,5 +570,7 @@ def main(args):
 
 if __name__ == "__main__":
     cur_args = parse_args()
+    cur_args.head_dropout_prob = 0.1
+    cur_args.no_abstraction = None
     create_path_if_not_exist(cur_args.output_dir)
     main(cur_args)
