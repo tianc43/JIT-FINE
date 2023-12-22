@@ -1,17 +1,14 @@
 # JIT-Fine-replication-package
 
-
-
 This repository contains source code that we used to perform experiment in paper titled "The Best of Both Worlds: Integrating Semantic Features with Expert Features for Defect Prediction and Localization".
-
 
 Please follow the steps below to reproduce the result
 
 ## Dataset
 
 - We build a large-scale pure line-level labeled dataset **JIT-Defect4J** for JIT-DP research on the basic of [LLTC4J](https://arxiv.org/abs/2011.06244), which is originally collected by Herbold et al. Besides, we also build the line-level defect-introducing datasets for the study of JIT-DL.
-- LLTC4J is good starting-point of collecting high-quality, fine-grained, comprehensive dataset for just-in-time defect predictionand line-level localization research. However, as aforementioned, it only collects the bug-fixing commits and label the lines only in each bug-fixing commit. Therefore, we extend this dataset from two-sides: 1) extracting both clean commits and buggy commits; 2) extracting the line label in defect-introducing commits.
-![Process of Dataset Extention](process-of-dataset-extentsion.jpg)
+- LLTC4J is good starting-point of collecting high-quality, fine-grained, comprehensive dataset for just-in-time defect prediction and line-level localization research. However, as aforementioned, it only collects the bug-fixing commits and label the lines only in each bug-fixing commit. Therefore, we extend this dataset from two-sides: 1) extracting both clean commits and buggy commits; 2) extracting the line label in defect-introducing commits.
+  ![Process of Dataset Extention](process-of-dataset-extentsion.jpg)
 
 ## Environment Setup
 
@@ -41,25 +38,21 @@ There are 4 baselines in RQ1(i.e., `LApredict`, `Deeper`, `DeepJIT`, `CC2Vec`, a
   ```shell
   python -m baselines.LApredict.lapredict
   ```
-
 - Deeper
 
   ```shell
   python -m baselines.Deeper.deeper
   ```
-
 - DeepJIT
 
   ```shell
   python -m baselines.DeepJIT.deepjit
   ```
-
 - CC2Vec
 
   ```shell
   python -m baselines.CC2Vec.cc2vec
   ```
-
 - JITLine
 
   ```shell
@@ -68,20 +61,18 @@ There are 4 baselines in RQ1(i.e., `LApredict`, `Deeper`, `DeepJIT`, `CC2Vec`, a
 
 ### **RQ2 Baseline Implementation**
 
-JITLine has three ablation experiments:(i.e., `only expert feature`, `only semantic feature` and `combination`). 
+JITLine has three ablation experiments:(i.e., `only expert feature`, `only semantic feature` and `combination`).
 
 - only expert feature experiment
 
   ```shell
   python -m baselines.JITLine.jitline_rq2 -style manual
   ```
-
 - only semantic feature experiment
 
   ```shell
   python -m baselines.JITLine.jitline_rq2 -style semantic
   ```
-
 - combination
 
   ```shell
@@ -90,7 +81,7 @@ JITLine has three ablation experiments:(i.e., `only expert feature`, `only seman
 
 ### **RQ3 Baseline Implementation**
 
-There are 2 baselines in RQ1(i.e., `JITLine` and `ngram`). 
+There are 2 baselines in RQ1(i.e., `JITLine` and `ngram`).
 
 - ngram
 
@@ -99,7 +90,6 @@ There are 2 baselines in RQ1(i.e., `JITLine` and `ngram`).
   ```shell
   python -m baselines.ngram.evaluate_result
   ```
-
 - JITLine
 
   ```shell
@@ -255,15 +245,14 @@ python -m JITFine.semantic.run \
     --seed 42 2>&1|  tee model/jitfine/saved_models_semantic/test.log
 ```
 
-
-
 ## Acknowledgements
+
 - For Deeper,  DeepJIT, CC2Vec, we adopt the implementation from this project
-  - [*Deep Just-in-Time Defect Prediction: How Far Are We?*](https://github.com/ZZR0/ISSTA21-JIT-DP) 
- 
+
+  - [*Deep Just-in-Time Defect Prediction: How Far Are We?*](https://github.com/ZZR0/ISSTA21-JIT-DP)
 - For JITLine, we adopt the implementation from this project
+
   - [JITLine: A Simpler, Better, Faster, Finer-grained Just-In-Time Defect Prediction](https://zenodo.org/record/4596503)
- 
 - Special thanks to each work's developers
 
 ## Citation

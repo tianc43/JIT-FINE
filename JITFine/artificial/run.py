@@ -24,7 +24,11 @@ from JITFine.my_util import convert_examples_to_features, TextDataset, eval_resu
 
 logger = logging.getLogger(__name__)
 
-
+'''
+确保在每次运行程序时，如果使用相同的种子值，
+那么生成的随机数序列将会是一样的。
+这对于需要重现结果的科学计算和机器学习任务非常有用。
+'''
 def set_seed(args):
     random.seed(args.seed)
     np.random.seed(args.seed)
